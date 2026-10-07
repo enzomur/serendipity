@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.env
+
+# Pipeline data (too large for git)
+pipeline/raw/
+pipeline/gutenberg_mirror/
+pipeline/rejected.json
+pipeline/build_output.log
+pipeline/*.icloud
+
+# Web data (generated, can be rebuilt)
+web/data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

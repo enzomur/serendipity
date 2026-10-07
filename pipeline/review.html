@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serendipity - Filter Review</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card-bg: #2a2a2a;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --accent: #6b9;
+            --reject: #c66;
+            --accept: #6b9;
+            --border: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: 1.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            background: var(--border);
+        }
+
+        button.active {
+            border-color: var(--accent);
+        }
+
+        select {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .columns {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .column {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .column h2 {
+            margin: 0 0 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .column h2 .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .accepted h2 .badge {
+            background: var(--accept);
+            color: #000;
+        }
+
+        .rejected h2 .badge {
+            background: var(--reject);
+            color: #fff;
+        }
+
+        .card {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .card-meta .reason {
+            color: var(--reject);
+            font-weight: 500;
+        }
+
+        .card-text {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading {
+            color: var(--text-muted);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .error {
+            color: var(--reject);
+            padding: 20px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .nav-buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Serendipity Filter Review</h1>
+
+    <div class="controls">
+        <button id="refreshBtn">Refresh Data</button>
+        <button id="shuffleBtn">Shuffle</button>
+        <select id="reasonFilter">
+            <option value="">All reject reasons</option>
+        </select>
+        <select id="bookFilter">
+            <option value="">All books</option>
+        </select>
+        <span class="stats" id="stats"></span>
+    </div>
+
+    <div class="columns">
+        <div class="column accepted">
+            <h2>Accepted <span class="badge" id="acceptedCount">0</span></h2>
+            <div id="acceptedCards"></div>
+            <div class="nav-buttons">
+                <button id="prevAccepted">Previous</button>
+                <button id="nextAccepted">Next</button>
+            </div>
+        </div>
+
+        <div class="column rejected">
+            <h2>Rejected <span class="badge" id="rejectedCount">0</span></h2>
+            <div id="rejectedCards"></div>
+            <div class="nav-buttons">
+                <button id="prevRejected">Previous</button>
+                <button id="nextRejected">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let acceptedCards = [];
+        let rejectedCards = [];
+        let acceptedIndex = 0;
+        let rejectedIndex = 0;
+        const PAGE_SIZE = 3;
+
+        // DOM refs
+        const acceptedContainer = document.getElementById('acceptedCards');
+        const rejectedContainer = document.getElementById('rejectedCards');
+        const acceptedCount = document.getElementById('acceptedCount');
+        const rejectedCount = document.getElementById('rejectedCount');
+        const reasonFilter = document.getElementById('reasonFilter');
+        const bookFilter = document.getElementById('bookFilter');
+        const stats = document.getElementById('stats');
+
+        // Render a single card
+        function renderCard(card, isRejected = false) {
+            const div = document.createElement('div');
+            div.className = 'card';
+
+            const meta = document.createElement('div');
+            meta.className = 'card-meta';
+
+            const title = card.source_title || 'Unknown';
+            const author = card.author || 'Unknown';
+            const book_id = card.book_id || '';
+            const form = card.form || 'prose';
+
+            let metaHTML = `<span>${title} — ${author}</span>`;
+            metaHTML += `<span>pg${book_id}</span>`;
+            metaHTML += `<span>${form}</span>`;
+
+            if (isRejected && card.reason) {
+                metaHTML += `<span class="reason">${escapeHtml(card.reason)}</span>`;
+            }
+
+            meta.innerHTML = metaHTML;
+
+            const text = document.createElement('div');
+            text.className = 'card-text';
+            text.textContent = card.text || '';
+
+            div.appendChild(meta);
+            div.appendChild(text);
+            return div;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Render page of cards
+        function renderAccepted() {
+            acceptedContainer.innerHTML = '';
+            const filtered = filterCards(acceptedCards, false);
+            const page = filtered.slice(acceptedIndex, acceptedIndex + PAGE_SIZE);
+
+            if (page.length === 0) {
+                acceptedContainer.innerHTML = '<div class="loading">No cards match filters</div>';
+            } else {
+                page.forEach(card => acceptedContainer.appendChild(renderCard(card)));
+            }
+
+            acceptedCount.textContent = filtered.length;
+        }
+
+        function renderRejected() {
+            rejectedContainer.innerHTML = '';
+            const filtered = filterCards(rejectedCards, true);
+            const page = filtered.slice(rejectedIndex, rejectedIndex + PAGE_SIZE);
+
+            if (page.length === 0) {
+                rejectedContainer.innerHTML = '<div class="loading">No cards match filters</div>';
+            } else {
+                page.forEach(card => rejectedContainer.appendChild(renderCard(card, true)));
+            }
+
+            rejectedCount.textContent = filtered.length;
+        }
+
+        function filterCards(cards, isRejected) {
+            const reason = reasonFilter.value;
+            const book = bookFilter.value;
+
+            return cards.filter(card => {
+                if (book && card.book_id !== book) return false;
+                if (isRejected && reason && !card.reason?.includes(reason)) return false;
+                return true;
+            });
+        }
+
+        // Navigation
+        document.getElementById('prevAccepted').onclick = () => {
+            acceptedIndex = Math.max(0, acceptedIndex - PAGE_SIZE);
+            renderAccepted();
+        };
+
+        document.getElementById('nextAccepted').onclick = () => {
+            const filtered = filterCards(acceptedCards, false);
+            acceptedIndex = Math.min(filtered.length - PAGE_SIZE, acceptedIndex + PAGE_SIZE);
+            acceptedIndex = Math.max(0, acceptedIndex);
+            renderAccepted();
+        };
+
+        document.getElementById('prevRejected').onclick = () => {
+            rejectedIndex = Math.max(0, rejectedIndex - PAGE_SIZE);
+            renderRejected();
+        };
+
+        document.getElementById('nextRejected').onclick = () => {
+            const filtered = filterCards(rejectedCards, true);
+            rejectedIndex = Math.min(filtered.length - PAGE_SIZE, rejectedIndex + PAGE_SIZE);
+            rejectedIndex = Math.max(0, rejectedIndex);
+            renderRejected();
+        };
+
+        // Shuffle
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        document.getElementById('shuffleBtn').onclick = () => {
+            shuffle(acceptedCards);
+            shuffle(rejectedCards);
+            acceptedIndex = 0;
+            rejectedIndex = 0;
+            renderAccepted();
+            renderRejected();
+        };
+
+        // Filters
+        reasonFilter.onchange = () => {
+            rejectedIndex = 0;
+            renderRejected();
+        };
+
+        bookFilter.onchange = () => {
+            acceptedIndex = 0;
+            rejectedIndex = 0;
+            renderAccepted();
+            renderRejected();
+        };
+
+        // Load data
+        async function loadData() {
+            acceptedContainer.innerHTML = '<div class="loading">Loading...</div>';
+            rejectedContainer.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                // Load manifest to find shards
+                const manifestRes = await fetch('../web/data/manifest.json');
+                if (!manifestRes.ok) throw new Error('No manifest.json - run build.py first');
+                const manifest = await manifestRes.json();
+
+                // Load all shards
+                acceptedCards = [];
+                for (const shard of manifest.shards) {
+                    const res = await fetch(`../web/data/${shard.file}`);
+                    if (res.ok) {
+                        const cards = await res.json();
+                        acceptedCards.push(...cards);
+                    }
+                }
+
+                // Load rejected sample
+                try {
+                    const rejRes = await fetch('rejected.json');
+                    if (rejRes.ok) {
+                        rejectedCards = await rejRes.json();
+                    }
+                } catch (e) {
+                    rejectedCards = [];
+                }
+
+                // Populate filters
+                populateFilters();
+
+                // Initial shuffle for variety
+                shuffle(acceptedCards);
+                shuffle(rejectedCards);
+
+                stats.textContent = `${acceptedCards.length} accepted, ${rejectedCards.length} rejected samples`;
+
+                renderAccepted();
+                renderRejected();
+
+            } catch (e) {
+                acceptedContainer.innerHTML = `<div class="error">Error: ${escapeHtml(e.message)}</div>`;
+                rejectedContainer.innerHTML = `<div class="error">Run build.py to generate data</div>`;
+            }
+        }
+
+        function populateFilters() {
+            // Collect unique reject reasons
+            const reasons = new Set();
+            rejectedCards.forEach(card => {
+                if (card.reason) {
+                    // Extract base reason (before parenthetical details)
+                    const base = card.reason.split('(')[0].trim();
+                    reasons.add(base);
+                }
+            });
+
+            reasonFilter.innerHTML = '<option value="">All reject reasons</option>';
+            [...reasons].sort().forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                reasonFilter.appendChild(opt);
+            });
+
+            // Collect unique books
+            const books = new Map();
+            [...acceptedCards, ...rejectedCards].forEach(card => {
+                if (card.book_id && !books.has(card.book_id)) {
+                    books.set(card.book_id, card.source_title || `pg${card.book_id}`);
+                }
+            });
+
+            bookFilter.innerHTML = '<option value="">All books</option>';
+            [...books.entries()].sort((a, b) => a[1].localeCompare(b[1])).forEach(([id, title]) => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = `${title} (pg${id})`;
+                bookFilter.appendChild(opt);
+            });
+        }
+
+        document.getElementById('refreshBtn').onclick = loadData;
+
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>

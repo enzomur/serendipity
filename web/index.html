@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Serendipity">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231a1a1a' width='100' height='100' rx='20'/><text x='50' y='68' text-anchor='middle' font-size='50'>S</text></svg>">
+    <link rel="manifest" href="manifest.webmanifest">
+    <title>Serendipity</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <button id="menuBtn" aria-label="Menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1>Serendipity</h1>
+            <button id="savedBtn" aria-label="Saved cards">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </button>
+        </header>
+
+        <main id="cardContainer">
+            <div id="card" class="card">
+                <div class="card-header" id="cardHeader"></div>
+                <div class="card-text" id="cardText"></div>
+                <div class="card-meta" id="cardMeta"></div>
+            </div>
+            <div id="emptyState" class="empty-state hidden">
+                <p>No more cards match your filters.</p>
+                <button id="resetFiltersBtn">Reset filters</button>
+            </div>
+        </main>
+
+        <footer id="footer">
+            <button id="saveBtn" class="action-btn save" aria-label="Save">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+            </button>
+            <button id="nextBtn" class="action-btn next" aria-label="Next">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+            <button id="dislikeBtn" class="action-btn dislike" aria-label="Less like this">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </footer>
+    </div>
+
+    <!-- Menu panel -->
+    <div id="menuPanel" class="panel hidden">
+        <div class="panel-header">
+            <h2>Filters</h2>
+            <button id="closeMenuBtn" aria-label="Close">&times;</button>
+        </div>
+        <div class="panel-content">
+            <div id="topicFilters"></div>
+            <hr>
+            <div class="setting">
+                <label for="fontSizeRange">Font size</label>
+                <input type="range" id="fontSizeRange" min="14" max="28" value="18">
+            </div>
+            <div class="setting">
+                <label>
+                    <input type="checkbox" id="lightModeToggle">
+                    Light mode
+                </label>
+            </div>
+            <hr>
+            <div class="setting">
+                <button id="exportBtn">Export saves</button>
+                <button id="importBtn">Import saves</button>
+                <input type="file" id="importFile" accept=".json" hidden>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved panel -->
+    <div id="savedPanel" class="panel hidden">
+        <div class="panel-header">
+            <h2>Saved</h2>
+            <button id="closeSavedBtn" aria-label="Close">&times;</button>
+        </div>
+        <div class="panel-content" id="savedList"></div>
+    </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay hidden"></div>
+
+    <!-- Welcome overlay -->
+    <div id="welcome" class="welcome hidden">
+        <div class="welcome-content">
+            <h2>Welcome to Serendipity</h2>
+            <p>Discover wisdom from classic texts.</p>
+            <div class="welcome-actions">
+                <div class="welcome-action">
+                    <span class="welcome-icon next">&uarr;</span>
+                    <span>Swipe up for next</span>
+                </div>
+                <div class="welcome-action">
+                    <span class="welcome-icon save">&darr;</span>
+                    <span>Swipe down to save</span>
+                </div>
+            </div>
+            <p class="welcome-hint">Tap anywhere to advance, use side buttons for more</p>
+            <button id="welcomeBtn">Start reading</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
